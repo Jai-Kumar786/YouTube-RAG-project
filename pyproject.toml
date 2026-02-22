@@ -1,0 +1,19 @@
+[project]
+name = "youtube-rag"
+version = "0.1.0"
+description = "YouTube RAG pipeline — ask questions about any YouTube video using local Ollama models and PostgreSQL + pgvector."
+requires-python = ">=3.10"
+dependencies = [
+    "youtube-transcript-api>=1.0.0",
+    "langchain>=0.3.0",
+    "langchain-ollama>=0.3.0",
+    "langchain-text-splitters>=0.3.0",
+    "psycopg2-binary>=2.9.0",
+    "pgvector>=0.3.0",
+    "python-dotenv>=1.0.0",
+    "tiktoken>=0.7.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]

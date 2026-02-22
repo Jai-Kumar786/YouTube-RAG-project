@@ -1,0 +1,8 @@
+rich
+youtube-transcript-api
+tiktoken
+langchain-text-splitters
+langchain-core
+psycopg2-binary
+langchain-ollama
+python-dotenv
