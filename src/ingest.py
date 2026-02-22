@@ -20,10 +20,6 @@ def extract_video_id(url: str) -> str:
     raise ValueError(f"Could not extract video ID from: {url}")
 
 
-
-
-from youtube_transcript_api import YouTubeTranscriptApi
-
 def fetch_transcript(youtube_url: str) -> tuple[str, list]:
     """
     Fetch the transcript for the given YouTube video URL.
@@ -47,7 +43,6 @@ def fetch_transcript(youtube_url: str) -> tuple[str, list]:
         full_text = " ".join(seg.text for seg in segments)
 
         # Optional: Clean up extra spaces/newlines that auto-generated subs often have
-        import re
         full_text = re.sub(r'\s+', ' ', full_text)
 
         return full_text.strip(), segments
