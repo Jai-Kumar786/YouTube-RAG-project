@@ -5,6 +5,7 @@ with token-count metadata.
 from __future__ import annotations
 
 import tiktoken
+from bisect import bisect_right
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 
@@ -34,21 +35,47 @@ def chunk_transcript(
     raw_chunks = splitter.split_text(text)
     encoder = tiktoken.get_encoding("cl100k_base")
 
+    # Precompute segment boundaries for faster lookup (O(M))
+    segment_ends = []
+    cumulative = 0
+    for seg in segments:
+        cumulative += len(seg.text) + 1  # +1 for the space added during ingestion
+        segment_ends.append(cumulative)
+
     def find_time(pos):
-        cumulative = 0
-        for seg in segments:
-            seg_text = seg.text + " "
-            if pos < cumulative + len(seg_text):
-                return seg.start
-            cumulative += len(seg_text)
-        return segments[-1].start + segments[-1].duration if segments else 0
+        """Find the start time of the segment containing the given character position."""
+        if not segments:
+            return 0
+
+        # Binary search for the segment index (O(log M))
+        idx = bisect_right(segment_ends, pos)
+
+        if idx < len(segments):
+            return segments[idx].start
+
+        # If position is beyond the last segment, return the end time of the last segment
+        last_seg = segments[-1]
+        return last_seg.start + last_seg.duration
 
     documents: list[Document] = []
+    search_start = 0
     for idx, chunk_text in enumerate(raw_chunks):
         token_count = len(encoder.encode(chunk_text))
-        start_pos = text.find(chunk_text)  # approximate
+
+        # Optimized search: start looking from where the previous chunk started
+        start_pos = text.find(chunk_text, search_start)
+
+        # Fallback: if not found (e.g. text normalization mismatch), search from beginning
+        if start_pos == -1:
+            start_pos = text.find(chunk_text)
+
+        # Update search_start for the next iteration to avoid O(N^2) behavior
+        if start_pos != -1:
+            search_start = start_pos + 1
+
         start_time = find_time(start_pos)
         end_time = find_time(start_pos + len(chunk_text))
+
         doc = Document(
             page_content=chunk_text,
             metadata={
