@@ -47,7 +47,6 @@ def fetch_transcript(youtube_url: str) -> tuple[str, list]:
         full_text = " ".join(seg.text for seg in segments)
 
         # Optional: Clean up extra spaces/newlines that auto-generated subs often have
-        import re
         full_text = re.sub(r'\s+', ' ', full_text)
 
         return full_text.strip(), segments
