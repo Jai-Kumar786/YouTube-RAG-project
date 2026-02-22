@@ -34,21 +34,45 @@ def chunk_transcript(
     raw_chunks = splitter.split_text(text)
     encoder = tiktoken.get_encoding("cl100k_base")
 
-    def find_time(pos):
-        cumulative = 0
-        for seg in segments:
+    def find_time_with_hint(pos, start_idx=0, start_cumulative=0):
+        # Reset scan from beginning if pos is behind our current search window
+        if pos < start_cumulative:
+            start_idx = 0
+            start_cumulative = 0
+
+        cumulative = start_cumulative
+        for i in range(start_idx, len(segments)):
+            seg = segments[i]
             seg_text = seg.text + " "
-            if pos < cumulative + len(seg_text):
-                return seg.start
-            cumulative += len(seg_text)
-        return segments[-1].start + segments[-1].duration if segments else 0
+            seg_len = len(seg_text)
+            if pos < cumulative + seg_len:
+                return seg.start, i, cumulative
+            cumulative += seg_len
+
+        # If not found (beyond end of segments), return end time of last segment
+        val = segments[-1].start + segments[-1].duration if segments else 0
+        return val, len(segments), cumulative
 
     documents: list[Document] = []
+    search_start_idx = 0
+    search_start_cum = 0
+
     for idx, chunk_text in enumerate(raw_chunks):
         token_count = len(encoder.encode(chunk_text))
         start_pos = text.find(chunk_text)  # approximate
-        start_time = find_time(start_pos)
-        end_time = find_time(start_pos + len(chunk_text))
+
+        start_time, found_idx, found_cum = find_time_with_hint(
+            start_pos, search_start_idx, search_start_cum
+        )
+        # Update hint for next chunk's start_time search
+        search_start_idx = found_idx
+        search_start_cum = found_cum
+
+        # For end_time, start search from where start_time was found
+        end_time, _, _ = find_time_with_hint(
+            start_pos + len(chunk_text), found_idx, found_cum
+        )
+
         doc = Document(
             page_content=chunk_text,
             metadata={
