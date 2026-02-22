@@ -20,7 +20,10 @@ load_dotenv()
 
 EMBEDDING_MODEL = "nomic-embed-text"
 EMBEDDING_DIM = 768
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://raguser:ragpass@localhost:5433/youtube_rag")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set")
+
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 
