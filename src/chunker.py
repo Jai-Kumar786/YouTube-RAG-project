@@ -34,13 +34,35 @@ def chunk_transcript(
     raw_chunks = splitter.split_text(text)
     encoder = tiktoken.get_encoding("cl100k_base")
 
+    # Cache the last found segment index and cumulative length
+    # This optimizes sequential lookups from O(N*M) to O(N+M)
+    search_state = {"index": 0, "cumulative": 0}
+
     def find_time(pos):
-        cumulative = 0
-        for seg in segments:
-            seg_text = seg.text + " "
-            if pos < cumulative + len(seg_text):
+        idx = search_state["index"]
+        cumulative = search_state["cumulative"]
+
+        # If we went backwards, reset search
+        if pos < cumulative:
+            idx = 0
+            cumulative = 0
+
+        for i in range(idx, len(segments)):
+            seg = segments[i]
+            # +1 for the space that was used during ingestion
+            seg_len = len(seg.text) + 1
+
+            if pos < cumulative + seg_len:
+                # Update state to current segment start for next call
+                search_state["index"] = i
+                search_state["cumulative"] = cumulative
                 return seg.start
-            cumulative += len(seg_text)
+
+            cumulative += seg_len
+
+        # If not found, update state to end
+        search_state["index"] = len(segments)
+        search_state["cumulative"] = cumulative
         return segments[-1].start + segments[-1].duration if segments else 0
 
     documents: list[Document] = []
