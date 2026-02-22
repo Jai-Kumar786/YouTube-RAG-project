@@ -11,7 +11,9 @@ from src.store import embed_texts
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://raguser:ragpass@localhost:5433/youtube_rag")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable not set. Please set it in your .env file.")
 
 
 def retrieve(query: str, top_k: int = 5) -> list[dict]:
