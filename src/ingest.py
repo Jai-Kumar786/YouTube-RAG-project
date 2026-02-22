@@ -7,14 +7,17 @@ import re
 from youtube_transcript_api import YouTubeTranscriptApi
 
 
+# Pre-compile regex patterns
+VIDEO_ID_PATTERNS = [
+    re.compile(r"(?:v=|/v/|youtu\.be/|/embed/)([a-zA-Z0-9_-]{11})"),
+    re.compile(r"^([a-zA-Z0-9_-]{11})$"),  # bare video ID
+]
+
+
 def extract_video_id(url: str) -> str:
     """Extract the 11-char video ID from various YouTube URL formats."""
-    patterns = [
-        r"(?:v=|/v/|youtu\.be/|/embed/)([a-zA-Z0-9_-]{11})",
-        r"^([a-zA-Z0-9_-]{11})$",  # bare video ID
-    ]
-    for pat in patterns:
-        match = re.search(pat, url)
+    for pat in VIDEO_ID_PATTERNS:
+        match = pat.search(url)
         if match:
             return match.group(1)
     raise ValueError(f"Could not extract video ID from: {url}")
