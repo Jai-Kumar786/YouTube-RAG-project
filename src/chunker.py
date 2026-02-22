@@ -37,10 +37,10 @@ def chunk_transcript(
     def find_time(pos):
         cumulative = 0
         for seg in segments:
-            seg_text = seg.text + " "
-            if pos < cumulative + len(seg_text):
+            seg_len = len(seg.text) + 1
+            if pos < cumulative + seg_len:
                 return seg.start
-            cumulative += len(seg_text)
+            cumulative += seg_len
         return segments[-1].start + segments[-1].duration if segments else 0
 
     documents: list[Document] = []
