@@ -1,52 +1,31 @@
-"""
-Retrieval — semantic search over stored transcript chunks.
-"""
-from __future__ import annotations
-
 import os
-import psycopg2
-from dotenv import load_dotenv
+from langchain_community.vectorstores import PGVector
+from langchain_ollama import OllamaEmbeddings
+from langchain_core.documents import Document
 
-from src.store import embed_texts
+# Match the DB connection string from store.py
+DB_CONNECTION_STRING = os.getenv(
+    "DATABASE_URL", 
+    "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres"
+)
 
-load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://raguser:ragpass@localhost:5433/youtube_rag")
-
-
-def retrieve(query: str, top_k: int = 5) -> list[dict]:
+def retrieve_context(question: str, top_k: int = 4) -> list[Document]:
     """
-    Embed the user query and return the top-k most similar transcript chunks
-    using cosine distance (<=> operator) in pgvector.
-
-    Returns a list of dicts with keys: id, content, metadata, score.
+    Embeds the user question and performs a similarity search 
+    against the pgvector database to find relevant transcript chunks.
     """
-    # Embed the query
-    query_vector = embed_texts([query])[0]
-
-    conn = psycopg2.connect(DATABASE_URL)
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT id, content, metadata,
-                       1 - (embedding <=> %s::vector) AS score
-                FROM transcript_chunks
-                ORDER BY embedding <=> %s::vector
-                LIMIT %s;
-                """,
-                (query_vector, query_vector, top_k),
-            )
-            rows = cur.fetchall()
-    finally:
-        conn.close()
-
-    results = []
-    for row in rows:
-        results.append({
-            "id": row[0],
-            "content": row[1],
-            "metadata": row[2],
-            "score": round(float(row[3]), 4),
-        })
+    print(f"Embedding question and searching pgvector for top {top_k} matches...")
+    
+    # Must use the exact same embedding model used during ingestion!
+    embeddings = OllamaEmbeddings(model="nomic-embed-text")
+    
+    # Connect to the existing pgvector collection
+    vector_store = PGVector(
+        collection_name="youtube_transcripts",
+        connection_string=DB_CONNECTION_STRING,
+        embedding_function=embeddings,
+    )
+    
+    # Perform similarity search
+    results = vector_store.similarity_search(question, k=top_k)
     return results

@@ -6,3 +6,6 @@ langchain-core
 psycopg2-binary
 langchain-ollama
 python-dotenv
+fastapi
+pydantic
+uvicorn
