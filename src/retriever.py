@@ -7,11 +7,9 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 
-from src.store import embed_texts
+from src.store import embed_texts, DATABASE_URL
 
 load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://raguser:ragpass@localhost:5433/youtube_rag")
 
 
 def retrieve(query: str, top_k: int = 5) -> list[dict]:
