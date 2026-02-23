@@ -3,6 +3,7 @@ youtube-transcript-api
 tiktoken
 langchain-text-splitters
 langchain-core
+langchain-community
 psycopg2-binary
 langchain-ollama
 python-dotenv

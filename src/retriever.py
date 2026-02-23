@@ -6,7 +6,7 @@ from langchain_core.documents import Document
 # Match the DB connection string from store.py
 DB_CONNECTION_STRING = os.getenv(
     "DATABASE_URL", 
-    "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres"
+    "postgresql+psycopg2://raguser:ragpass@localhost:5433/youtube_rag"
 )
 
 def retrieve_context(question: str, top_k: int = 4) -> list[Document]:

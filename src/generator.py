@@ -1,12 +1,16 @@
+import os
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
+
+# Read model name from environment (configurable via .env)
+LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-v3.1:671b-cloud")
 
 def generate_answer(question: str, context_docs: list[Document]) -> str:
     """
     Uses DeepSeek (via Ollama) to generate an answer based purely on the retrieved context.
     """
-    print("Generating answer using DeepSeek...")
+    print(f"Generating answer using {LLM_MODEL}...")
     
     # Combine the document chunks into a single readable string
     context_text = "\n\n---\n\n".join([doc.page_content for doc in context_docs])
@@ -27,9 +31,8 @@ def generate_answer(question: str, context_docs: list[Document]) -> str:
     
     prompt = ChatPromptTemplate.from_template(prompt_template)
     
-    # Initialize the DeepSeek model via Ollama
-    # Note: adjust the model name if you pulled a specific tag like 'deepseek-coder'
-    llm = ChatOllama(model="deepseek-v3.1:671b-cloud") 
+    # Initialize the LLM via Ollama using the configured model name
+    llm = ChatOllama(model=LLM_MODEL) 
     
     # Create the LCEL (LangChain Expression Language) chain
     chain = prompt | llm
