@@ -26,11 +26,25 @@ def fetch_youtube_transcript(video_id: str) -> str:
     Returns the full text as a single string, or None if it fails.
     """
     try:
-        # Fetch the transcript (defaults to English)
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+        # 1. Initialize the modern API object 
+        api = YouTubeTranscriptApi()
         
-        # Combine all the text dictionaries into one continuous string
-        transcript_text = " ".join([entry['text'] for entry in transcript_list])
+        # 2. Fetch the list of transcripts 
+        transcript_list = api.list(video_id)
+        
+        # 3. Find the English transcript (this safely falls back to auto-generated)
+        transcript = transcript_list.find_transcript(['en'])
+        
+        # 4. Fetch the actual text segments
+        segments = transcript.fetch()
+        
+        # 5. Join all text segments using the updated object attribute (.text)
+        transcript_text = " ".join([seg.text for seg in segments])
+        
+        # Clean up the text (optional but recommended for RAG)
+        import re
+        transcript_text = re.sub(r'\s+', ' ', transcript_text).strip()
+        
         return transcript_text
         
     except (TranscriptsDisabled, NoTranscriptFound) as e:

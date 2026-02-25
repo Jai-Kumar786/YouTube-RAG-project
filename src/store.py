@@ -1,4 +1,5 @@
 import os
+from sqlalchemy import create_engine, text
 from langchain_core.documents import Document
 from langchain_community.vectorstores import PGVector
 from langchain_ollama import OllamaEmbeddings
@@ -29,7 +30,8 @@ def store_documents(docs: list[Document]) -> int:
         documents=docs,
         collection_name="youtube_transcripts",
         connection_string=DB_CONNECTION_STRING,
-        pre_delete_collection=False  # Set to True if you want to clear the DB on every ingest
+        pre_delete_collection=False,  # Set to True if you want to clear the DB on every ingest
+        use_jsonb=True,
     )
     
     print("Successfully stored documents in pgvector.")
@@ -46,6 +48,7 @@ def check_video_exists(video_id: str) -> bool:
             collection_name="youtube_transcripts",
             connection_string=DB_CONNECTION_STRING,
             embedding_function=embeddings,
+            use_jsonb=True,
         )
         # Search for documents with matching video_id
         results = vector_store.similarity_search(
@@ -55,3 +58,45 @@ def check_video_exists(video_id: str) -> bool:
     except Exception:
         # If the table doesn't exist yet, the video can't exist
         return False
+
+def delete_video_chunks(video_id: str) -> int:
+    """
+    Deletes all stored chunks for a given video_id from the database.
+    Returns the number of deleted rows.
+    """
+    try:
+        engine = create_engine(DB_CONNECTION_STRING)
+        with engine.connect() as conn:
+            result = conn.execute(
+                text(
+                    "DELETE FROM langchain_pg_embedding "
+                    "WHERE cmetadata->>'video_id' = :vid"
+                ),
+                {"vid": video_id},
+            )
+            conn.commit()
+            deleted = result.rowcount
+            print(f"Deleted {deleted} old chunks for video {video_id}.")
+            return deleted
+    except Exception as e:
+        print(f"Warning: could not delete old chunks for {video_id}: {e}")
+        return 0
+
+def delete_all_chunks() -> int:
+    """
+    Deletes ALL stored chunks from the database.
+    Returns the number of deleted rows.
+    """
+    try:
+        engine = create_engine(DB_CONNECTION_STRING)
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("DELETE FROM langchain_pg_embedding")
+            )
+            conn.commit()
+            deleted = result.rowcount
+            print(f"Deleted all {deleted} chunks from the database.")
+            return deleted
+    except Exception as e:
+        print(f"Warning: could not delete chunks: {e}")
+        return 0
